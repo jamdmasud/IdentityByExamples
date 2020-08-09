@@ -8,7 +8,6 @@ namespace IdentityByExamples.Controllers
 {
     [Route("api/employees")]
     [ApiController]
-    [Authorize]
     public class EmployeesController : ControllerBase
     {
         public ApplicationContext ApplicationContext { get; }
