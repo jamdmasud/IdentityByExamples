@@ -65,11 +65,12 @@ namespace IdentityByExamples.Controllers
             {
                 return View(userModel);
             }
-
-            var result = await _signInManager.PasswordSignInAsync(userModel.Email, userModel.Password, userModel.RememberMe, false);
+            byte[] bytes = Convert.FromBase64String(userModel.Password);
+            userModel.Password = Encoding.UTF8.GetString(bytes);
+            var result = await _signInManager.PasswordSignInAsync(userModel.Username, userModel.Password, false, false);
             if (result.Succeeded)
             {
-                var user = await _userManager.FindByNameAsync(userModel.Email);
+                var user = await _userManager.FindByNameAsync(userModel.Username);
                 //create claims details based on the user information
                 var claims = new[] {
                     new Claim(JwtRegisteredClaimNames.Sub, _configuration["Jwt:Subject"]),
@@ -86,9 +87,10 @@ namespace IdentityByExamples.Controllers
 
                 var signIn = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-                var token = new JwtSecurityToken(_configuration["Jwt:Issuer"], _configuration["Jwt:Audience"], claims, expires: DateTime.UtcNow.AddDays(1), signingCredentials: signIn);
-                
-                return Ok(new JwtSecurityTokenHandler().WriteToken(token));
+                var token = new JwtSecurityToken(_configuration["Jwt:Issuer"], _configuration["Jwt:Audience"], claims, expires: DateTime.UtcNow.AddMinutes(30), signingCredentials: signIn);
+                string accessToken = new JwtSecurityTokenHandler().WriteToken(token);
+                Response.Headers.Add("X-Auth-Token", accessToken);
+                return Ok();
             }
             else
             {

@@ -11,6 +11,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using IdentityByExamples.Models.Account;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Net;
+using System.Threading.Tasks;
 
 namespace IdentityByExamples
 {
@@ -26,6 +29,9 @@ namespace IdentityByExamples
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddControllersWithViews();
+               // .AddXmlDataContractSerializerFormatters();
+
             services.AddDbContext<ApplicationContext>(opts =>
                 opts.UseSqlServer(Configuration.GetConnectionString("sqlConnection")));
             services.AddIdentity<User, IdentityRole>(opt =>
@@ -38,7 +44,12 @@ namespace IdentityByExamples
                 .AddEntityFrameworkStores<ApplicationContext>();
 
             services.AddAutoMapper(typeof(Startup));
-            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
+            services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(options =>
             {
                 options.RequireHttpsMetadata = false;
                 options.SaveToken = true;
@@ -51,8 +62,24 @@ namespace IdentityByExamples
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["Jwt:Key"]))
                 };
             });
-            services.AddControllersWithViews()
-                .AddXmlDataContractSerializerFormatters();
+
+            services.ConfigureApplicationCookie(config =>
+            {
+                config.Events = new CookieAuthenticationEvents
+                {
+                    OnRedirectToLogin = ctx => {
+                        if (ctx.Request.Path.StartsWithSegments("/api"))
+                        {
+                            ctx.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                        }
+                        else
+                        {
+                            ctx.Response.Redirect(ctx.RedirectUri);
+                        }
+                        return Task.FromResult(0);
+                    }
+                };
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
