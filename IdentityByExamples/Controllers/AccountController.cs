@@ -86,7 +86,7 @@ namespace IdentityByExamples.Controllers
                 var token = new JwtSecurityToken(_configuration["Jwt:Issuer"], _configuration["Jwt:Audience"], claims, expires: DateTime.UtcNow.AddMinutes(30), signingCredentials: signIn);
                 string accessToken = new JwtSecurityTokenHandler().WriteToken(token);
                 Response.Headers.Add("X-Auth-Token", accessToken);
-                return Ok();
+                return Ok("done");
             }
             else
             {
